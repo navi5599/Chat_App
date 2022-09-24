@@ -29,6 +29,6 @@ Expo
 
 ##### Screenshot of the App:
 
-<img src="/img/imgss.PNG" style="display: inline-block; margin: 0 auto; max-width: 600px" alt="Meet app photo">
+<img src="/img/imgss.PNG" style="display: inline-block; margin: 0 auto; max-width: 600px; max-height: 600px" alt="Meet app photo">
 
 ---
