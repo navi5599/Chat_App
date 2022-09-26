@@ -1,23 +1,77 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Button, StyleSheet, Pressable } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  Button,
+  StyleSheet,
+  Pressable,
+  Platform,
+  KeyboardAvoidingView,
+} from 'react-native';
+import { GiftedChat, Bubble } from 'react-native-gifted-chat';
 
 function Chat(props) {
   let { name } = props.route.params;
   let { color } = props.route.params;
 
+  const [messages, setMessages] = useState([]);
+
   useEffect(() => {
+    setMessages([
+      {
+        _id: 1,
+        text: 'Hello developer',
+        createdAt: new Date(),
+        user: {
+          _id: 2,
+          name: 'React Native',
+          avatar: 'https://placeimg.com/140/140/any',
+        },
+      },
+      {
+        _id: 2,
+        text: `${name} has entered a chat`,
+        createdAt: new Date(),
+        system: true,
+      },
+    ]);
+
     return props.navigation.setOptions({ title: name });
-  });
+  }, []);
+
+  //Change color of users chat bubble
+  const renderBubble = (props) => {
+    return (
+      <Bubble
+        {...props}
+        wrapperStyle={{
+          right: {
+            backgroundColor: '#5200BD',
+          },
+        }}
+      />
+    );
+  };
+
+  const onSend = useCallback((messages = []) => {
+    setMessages((previousMessages) =>
+      GiftedChat.append(previousMessages, messages)
+    );
+  }, []);
 
   return (
-    <View style={[styles.container, { backgroundColor: color }]}>
-      <Text>Hello Screen Two!</Text>
-      <Pressable
-        style={styles.backBtn}
-        onPress={() => props.navigation.navigate('Start')}
-      >
-        <Text style={styles.btnText}>Go back</Text>
-      </Pressable>
+    <View style={{ flex: 1, backgroundColor: color }}>
+      <GiftedChat
+        renderBubble={renderBubble.bind()}
+        messages={messages}
+        onSend={(messages) => onSend(messages)}
+        user={{
+          _id: 1,
+        }}
+      />
+      {Platform.OS === 'android' ? (
+        <KeyboardAvoidingView behavior="height" />
+      ) : null}
     </View>
   );
 }
@@ -27,8 +81,6 @@ export default Chat;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   btnText: {
     color: '#ffffff',
