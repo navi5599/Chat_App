@@ -8,35 +8,92 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from 'react-native';
+import {
+  collection,
+  onSnapshot,
+  addDoc,
+  query,
+  orderBy,
+} from 'firebase/firestore';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+
 import { GiftedChat, Bubble } from 'react-native-gifted-chat';
+import { db } from '../fire';
 
 function Chat(props) {
   let { name } = props.route.params;
   let { color } = props.route.params;
 
+  //State for messages
   const [messages, setMessages] = useState([]);
+  const [uid, setUid] = useState('');
+
+  const auth = getAuth();
+  //reference to the messages in firestore
+  const messagesRef = collection(db, 'messages');
 
   useEffect(() => {
-    setMessages([
-      {
-        _id: 1,
-        text: 'Hello developer',
-        createdAt: new Date(),
-        user: {
-          _id: 2,
-          name: 'React Native',
-          avatar: 'https://placeimg.com/140/140/any',
-        },
-      },
-      {
-        _id: 2,
-        text: `${name} has entered a chat`,
-        createdAt: new Date(),
-        system: true,
-      },
-    ]);
+    props.navigation.setOptions({ title: name });
 
-    return props.navigation.setOptions({ title: name });
+    // Create a query to the messages collection, retrieving all messages sorted by their date of creation
+    const messagesQuery = query(messagesRef, orderBy('createdAt', 'desc'));
+
+    const authUnsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        signInAnonymously(auth);
+      }
+      // update user state with user data
+      setUid(user.uid);
+    });
+
+    let stopListeningToSnapshots = onSnapshot(
+      messagesQuery,
+      onCollectionUpdate
+    );
+
+    return () => {
+      // stop listening for changes
+      stopListeningToSnapshots();
+      // stop listening to authentication
+      authUnsubscribe();
+    };
+  }, []);
+
+  // Reading snapshot data of messages collection, adding messages to messages state
+  const onCollectionUpdate = (querySnapshot) => {
+    let msg = [];
+    // go through each document
+    querySnapshot.forEach((doc) => {
+      // get the QueryDocumentSnapshot's data
+      let data = doc.data();
+      msg.push({
+        _id: data._id,
+        createdAt: data.createdAt.toDate(),
+        text: data.text,
+        user: data.user,
+      });
+    });
+    //Update state
+    setMessages(msg);
+    //UpdateAsync
+  };
+
+  // //Add new messages
+  const addMessage = (message) => {
+    addDoc(messagesRef, {
+      _id: message._id,
+      text: message.text || '',
+      createdAt: message.createdAt,
+      user: message.user,
+    });
+  };
+
+  //Append new messages to the State and add to firestore collection (addMessage) and asyncStorage (saveMessages)
+  const onSend = useCallback((messages = []) => {
+    setMessages((previousMessages) =>
+      GiftedChat.append(previousMessages, messages)
+    );
+    addMessage(messages[0]);
   }, []);
 
   //Change color of users chat bubble
@@ -53,20 +110,16 @@ function Chat(props) {
     );
   };
 
-  const onSend = useCallback((messages = []) => {
-    setMessages((previousMessages) =>
-      GiftedChat.append(previousMessages, messages)
-    );
-  }, []);
-
   return (
     <View style={{ flex: 1, backgroundColor: color }}>
       <GiftedChat
         renderBubble={renderBubble.bind()}
         messages={messages}
-        onSend={(messages) => onSend(messages)}
+        onSend={onSend}
         user={{
-          _id: 1,
+          _id: uid,
+          name: name,
+          avatar: 'https://placeimg.com/140/140/any',
         }}
       />
       {Platform.OS === 'android' ? (
