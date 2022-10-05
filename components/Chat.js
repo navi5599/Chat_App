@@ -37,49 +37,6 @@ function Chat(props) {
   //reference to the messages in firestore
   const messagesRef = collection(db, 'messages');
 
-  // useEffect(() => {
-  //   props.navigation.setOptions({ title: name });
-
-  //   NetInfo.fetch().then((connection) => {
-  //     if (connection.isConnected) {
-  //       setIsConnected('true');
-  //       console.log('online');
-  //     } else {
-  //       setIsConnected('false');
-  //       console.log('offline');
-  //     }
-  //   });
-
-  //   // If user is online, retrieve messages from firebase store, if offline use AsyncStorage
-  //   if (isConnected) {
-  //     // Create a query to the messages collection, retrieving all messages sorted by their date of creation
-  //     const messagesQuery = query(messagesRef, orderBy('createdAt', 'desc'));
-
-  //     const authUnsubscribe = onAuthStateChanged(auth, (user) => {
-  //       if (!user) {
-  //         signInAnonymously(auth);
-  //       }
-  //       // update user state with user data
-  //       setUid(user.uid);
-  //     });
-
-  //     let stopListeningToSnapshots = onSnapshot(
-  //       messagesQuery,
-  //       onCollectionUpdate
-  //     );
-
-  //     return () => {
-  //       // stop listening for changes
-  //       stopListeningToSnapshots();
-  //       // stop listening to authentication
-  //       authUnsubscribe();
-  //     };
-  //   } else {
-  //     // get messages from asyncStorage
-  //     getMessages();
-  //   }
-  // }, [isConnected]);
-
   useEffect(() => {
     props.navigation.setOptions({ title: name });
 
