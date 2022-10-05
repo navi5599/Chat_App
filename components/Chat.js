@@ -16,48 +16,109 @@ import {
   orderBy,
 } from 'firebase/firestore';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 
-import { GiftedChat, Bubble } from 'react-native-gifted-chat';
+import { GiftedChat, Bubble, InputToolbar } from 'react-native-gifted-chat';
 import { db } from '../fire';
 
 function Chat(props) {
   let { name } = props.route.params;
   let { color } = props.route.params;
 
-  //State for messages
+  //state for messages
   const [messages, setMessages] = useState([]);
+  //state to store info if user is online
+  const [isConnected, setIsConnected] = useState();
+
   const [uid, setUid] = useState('');
 
   const auth = getAuth();
   //reference to the messages in firestore
   const messagesRef = collection(db, 'messages');
 
+  // useEffect(() => {
+  //   props.navigation.setOptions({ title: name });
+
+  //   NetInfo.fetch().then((connection) => {
+  //     if (connection.isConnected) {
+  //       setIsConnected('true');
+  //       console.log('online');
+  //     } else {
+  //       setIsConnected('false');
+  //       console.log('offline');
+  //     }
+  //   });
+
+  //   // If user is online, retrieve messages from firebase store, if offline use AsyncStorage
+  //   if (isConnected) {
+  //     // Create a query to the messages collection, retrieving all messages sorted by their date of creation
+  //     const messagesQuery = query(messagesRef, orderBy('createdAt', 'desc'));
+
+  //     const authUnsubscribe = onAuthStateChanged(auth, (user) => {
+  //       if (!user) {
+  //         signInAnonymously(auth);
+  //       }
+  //       // update user state with user data
+  //       setUid(user.uid);
+  //     });
+
+  //     let stopListeningToSnapshots = onSnapshot(
+  //       messagesQuery,
+  //       onCollectionUpdate
+  //     );
+
+  //     return () => {
+  //       // stop listening for changes
+  //       stopListeningToSnapshots();
+  //       // stop listening to authentication
+  //       authUnsubscribe();
+  //     };
+  //   } else {
+  //     // get messages from asyncStorage
+  //     getMessages();
+  //   }
+  // }, [isConnected]);
+
   useEffect(() => {
     props.navigation.setOptions({ title: name });
 
-    // Create a query to the messages collection, retrieving all messages sorted by their date of creation
-    const messagesQuery = query(messagesRef, orderBy('createdAt', 'desc'));
+    // If user is online, retrieve messages from firebase store
+    NetInfo.fetch().then((connection) => {
+      setIsConnected(connection.isConnected);
+      if (!connection.isConnected) {
+        //get messages from async storage
+        getMessages();
+      } else {
+        // Fetch collection
+        const messagesQuery = query(messagesRef, orderBy('createdAt', 'desc'));
 
-    const authUnsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        signInAnonymously(auth);
+        // listen to authentication events
+        const authUnsubscribe = onAuthStateChanged(auth, (user) => {
+          if (!user) {
+            signInAnonymously(auth);
+          }
+
+          // update user state with data
+          setUid(user.uid);
+          console.log(user.uid);
+        });
+
+        // listen for collection changes (Update state based on database snapshot)
+        let stopListeningToSnapshots = onSnapshot(
+          messagesQuery,
+          onCollectionUpdate
+        );
+
+        return () => {
+          // stop listening for changes
+          stopListeningToSnapshots();
+          // stop listening to authentication
+          authUnsubscribe();
+        };
       }
-      // update user state with user data
-      setUid(user.uid);
     });
-
-    let stopListeningToSnapshots = onSnapshot(
-      messagesQuery,
-      onCollectionUpdate
-    );
-
-    return () => {
-      // stop listening for changes
-      stopListeningToSnapshots();
-      // stop listening to authentication
-      authUnsubscribe();
-    };
-  }, []);
+  }, [isConnected]);
 
   // Reading snapshot data of messages collection, adding messages to messages state
   const onCollectionUpdate = (querySnapshot) => {
@@ -76,6 +137,7 @@ function Chat(props) {
     //Update state
     setMessages(msg);
     //UpdateAsync
+    saveMessages(msg);
   };
 
   // //Add new messages
@@ -88,7 +150,39 @@ function Chat(props) {
     });
   };
 
-  //Append new messages to the State and add to firestore collection (addMessage) and asyncStorage (saveMessages)
+  //ASYNCSTORAGE
+  //get messages from async storage
+  const getMessages = async () => {
+    let messages = '';
+    try {
+      messages = (await AsyncStorage.getItem('messages')) || [];
+      setMessages(JSON.parse(messages));
+    } catch (error) {
+      console.log(error.message);
+    }
+  };
+
+  //save messages to async storage
+  const saveMessages = async (messages) => {
+    try {
+      await AsyncStorage.setItem('messages', JSON.stringify(messages));
+      //console.log("Messages: ", messages);
+    } catch (error) {
+      console.log(error.message);
+    }
+  };
+
+  //delete message from async storage
+  const deleteMessages = async () => {
+    try {
+      await AsyncStorage.removeItem('messages');
+      setMessages([]);
+    } catch (error) {
+      console.log(error.message);
+    }
+  };
+
+  //Append new messages to the State and add to firestore collection (addMessage)
   const onSend = useCallback((messages = []) => {
     setMessages((previousMessages) =>
       GiftedChat.append(previousMessages, messages)
@@ -96,26 +190,48 @@ function Chat(props) {
     addMessage(messages[0]);
   }, []);
 
-  //Change color of users chat bubble
+  //Change color of chat bubble
   const renderBubble = (props) => {
     return (
       <Bubble
         {...props}
+        textStyle={{
+          left: {
+            color: 'black',
+          },
+          right: {
+            color: 'white',
+          },
+        }}
         wrapperStyle={{
           right: {
             backgroundColor: '#5200BD',
+          },
+          left: {
+            backgroundColor: '#FFFFFF',
           },
         }}
       />
     );
   };
 
+  // Hide input bar if user is offline
+  const renderInputToolbar = (props) => {
+    if (!isConnected) {
+      // hide Toolbar
+    } else {
+      // display Toolbar
+      return <InputToolbar {...props} />;
+    }
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: color }}>
       <GiftedChat
         renderBubble={renderBubble.bind()}
+        renderInputToolbar={renderInputToolbar.bind()}
         messages={messages}
-        onSend={onSend}
+        onSend={(messages) => onSend(messages)}
         user={{
           _id: uid,
           name: name,

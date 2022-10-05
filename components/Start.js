@@ -8,8 +8,10 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
+  Platform,
   ImageBackground,
 } from 'react-native';
+// import { Platform } from 'react-native-web';
 
 import Image from '../img/img.png';
 
@@ -29,7 +31,11 @@ function Start(props) {
   };
   //pressing input,This moves container with input and button up,since keyboard covers whole container
   const onMove = () => {
-    setContainerMarginTop(0), setContainerMarginBottom(270);
+    if (Platform.OS === 'android') {
+      return containerMarginTop, containerMarginBottom;
+    } else {
+      setContainerMarginTop(0), setContainerMarginBottom(270);
+    }
   };
 
   return (
@@ -108,8 +114,8 @@ const styles = StyleSheet.create({
 
   title: {
     fontSize: 45,
-    marginBottom: 60,
-    // fontWeight: 600,
+    marginBottom: 50,
+
     color: '#ffffff',
   },
   smallContainer: {
@@ -117,8 +123,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 10,
-    // marginTop: 180,
-    // marginBottom: 270,
+    minHeight: 300,
   },
   input: {
     height: 45,
@@ -160,7 +165,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#757083',
-    opacity: '100%',
+    opacity: 100,
     justifyContent: 'center',
     padding: 10,
   },
@@ -168,6 +173,6 @@ const styles = StyleSheet.create({
   touchable: {
     width: 40,
     height: 40,
-    borderRadius: '50%',
+    borderRadius: 20,
   },
 });
