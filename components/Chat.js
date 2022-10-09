@@ -18,6 +18,10 @@ import {
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
+import MapView from 'react-native-maps';
+import { ActionSheetProvider } from '@expo/react-native-action-sheet';
+
+import CustomActions from './CustomActions';
 
 import { GiftedChat, Bubble, InputToolbar } from 'react-native-gifted-chat';
 import { db } from '../fire';
@@ -104,6 +108,8 @@ function Chat(props) {
       text: message.text || '',
       createdAt: message.createdAt,
       user: message.user,
+      image: message.image || null,
+      location: message.location || null,
     });
   };
 
@@ -182,23 +188,51 @@ function Chat(props) {
     }
   };
 
+  const renderCustomActions = (props) => {
+    return <CustomActions {...props} />;
+  };
+
+  const renderCustomView = (props) => {
+    const { currentMessage } = props;
+    if (currentMessage.location) {
+      return (
+        <MapView
+          style={{ width: 150, height: 100, borderRadius: 13, margin: 3 }}
+          region={{
+            latitude: currentMessage.location.latitude,
+            longitude: currentMessage.location.longitude,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          }}
+        />
+      );
+    }
+    return null;
+  };
+
   return (
-    <View style={{ flex: 1, backgroundColor: color }}>
-      <GiftedChat
-        renderBubble={renderBubble.bind()}
-        renderInputToolbar={renderInputToolbar.bind()}
-        messages={messages}
-        onSend={(messages) => onSend(messages)}
-        user={{
-          _id: uid,
-          name: name,
-          avatar: 'https://placeimg.com/140/140/any',
-        }}
-      />
-      {Platform.OS === 'android' ? (
-        <KeyboardAvoidingView behavior="height" />
-      ) : null}
-    </View>
+    <ActionSheetProvider>
+      <View style={{ flex: 1, backgroundColor: color }}>
+        <GiftedChat
+          renderBubble={renderBubble.bind()}
+          renderInputToolbar={renderInputToolbar.bind()}
+          renderActions={renderCustomActions}
+          renderCustomView={renderCustomView}
+          showUserAvatar={true}
+          showAvatarForEveryMessage={true}
+          messages={messages}
+          onSend={(messages) => onSend(messages)}
+          user={{
+            _id: uid,
+            name: name,
+            avatar: 'https://placeimg.com/140/140/any',
+          }}
+        />
+        {Platform.OS === 'android' ? (
+          <KeyboardAvoidingView behavior="height" />
+        ) : null}
+      </View>
+    </ActionSheetProvider>
   );
 }
 
