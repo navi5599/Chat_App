@@ -93,6 +93,8 @@ function Chat(props) {
         createdAt: data.createdAt.toDate(),
         text: data.text,
         user: data.user,
+        image: data.image || null,
+        location: data.location || null,
       });
     });
     //Update state

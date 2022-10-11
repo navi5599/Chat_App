@@ -7,8 +7,6 @@ import PropTypes from 'prop-types';
 import { connectActionSheet } from '@expo/react-native-action-sheet';
 
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-// const firebase = require('firebase');
-// require('firebase/firestore');
 
 class CustomAction extends React.Component {
   state = {
